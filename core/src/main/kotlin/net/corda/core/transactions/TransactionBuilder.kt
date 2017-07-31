@@ -2,14 +2,15 @@ package net.corda.core.transactions
 
 import co.paralleluniverse.strands.Strand
 import net.corda.core.contracts.*
-import net.corda.core.crypto.*
+import net.corda.core.crypto.DigitalSignature
+import net.corda.core.crypto.SecureHash
+import net.corda.core.crypto.sign
 import net.corda.core.identity.Party
 import net.corda.core.internal.FlowStateMachine
 import net.corda.core.node.ServiceHub
 import net.corda.core.node.services.KeyManagementService
 import java.security.KeyPair
 import java.security.PublicKey
-import java.security.SignatureException
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -150,84 +151,31 @@ open class TransactionBuilder(
     fun outputStates(): List<TransactionState<*>> = ArrayList(outputs)
     fun commands(): List<Command<*>> = ArrayList(commands)
 
-    /** The signatures that have been collected so far - might be incomplete! */
-    @Deprecated("Signatures should be gathered on a SignedTransaction instead.")
-    protected val currentSigs = arrayListOf<DigitalSignature.WithKey>()
-
-    /** Adds the signature directly to the transaction, without checking it for validity. */
-    @Deprecated("Use ServiceHub.signInitialTransaction() instead.")
-    fun addSignatureUnchecked(sig: DigitalSignature.WithKey): TransactionBuilder {
-        currentSigs.add(sig)
-        return this
-    }
-
     /**
      * Sign the built transaction and return it. This is an internal function for use by the service hub, please use
      * [ServiceHub.signInitialTransaction] instead.
      */
-    fun signInitialTransaction(keyManagementService: KeyManagementService, publicKey: PublicKey): SignedTransaction {
+    fun toSignedTransaction(keyManagementService: KeyManagementService, publicKey: PublicKey): SignedTransaction {
         val wtx = toWireTransaction()
         val sig = keyManagementService.sign(wtx.id.bytes, publicKey)
-        currentSigs.add(sig)
-        return SignedTransaction(wtx, ArrayList(currentSigs))
+        return SignedTransaction(wtx, ArrayList(listOf(sig)))
     }
 
     /**
-     * Sign the built transaction and return it. This is an internal function for use by the service hub, please use
-     * [ServiceHub.signInitialTransaction] instead.
+     * Sign the built transaction and return it, where the initial signature is provided by a third party node.
      */
-    fun signInitialTransaction(sig: DigitalSignature.WithKey): SignedTransaction {
+    fun toSignedTransaction(sig: DigitalSignature.WithKey): SignedTransaction {
         val wtx = toWireTransaction()
-        currentSigs.add(sig)
-        return SignedTransaction(wtx, ArrayList(currentSigs))
+        return SignedTransaction(wtx, ArrayList(listOf(sig)))
     }
 
     /**
      * Sign the built transaction and return it. This is an internal function for use by unit tests which do not have
      * full node.
      */
-    fun signInitialTransaction(keyPair: KeyPair): SignedTransaction {
+    fun toSignedTransaction(keyPair: KeyPair): SignedTransaction {
         val wtx = toWireTransaction()
         val sig = keyPair.sign(wtx.id.bytes)
-        currentSigs.add(sig)
-        return SignedTransaction(wtx, ArrayList(currentSigs))
-    }
-
-    @Deprecated("Use ServiceHub.signInitialTransaction() instead.")
-    fun toSignedTransaction(checkSufficientSignatures: Boolean = true): SignedTransaction {
-        if (checkSufficientSignatures) {
-            val gotKeys = currentSigs.map { it.by }.toSet()
-            val requiredKeys = commands.flatMap { it.signers }.toSet()
-            val missing: Set<PublicKey> = requiredKeys.filter { !it.isFulfilledBy(gotKeys) }.toSet()
-            if (missing.isNotEmpty())
-                throw IllegalStateException("Missing signatures on the transaction for the public keys: ${missing.joinToString()}")
-        }
-        val wtx = toWireTransaction()
-        return SignedTransaction(wtx, ArrayList(currentSigs))
-    }
-
-    /**
-     * Checks that the given signature matches one of the commands and that it is a correct signature over the tx, then
-     * adds it.
-     *
-     * @throws SignatureException if the signature didn't match the transaction contents.
-     * @throws IllegalArgumentException if the signature key doesn't appear in any command.
-     */
-    @Deprecated("Use WireTransaction.checkSignature() instead.")
-    fun checkAndAddSignature(sig: DigitalSignature.WithKey) {
-        checkSignature(sig)
-        addSignatureUnchecked(sig)
-    }
-
-    /**
-     * Checks that the given signature matches one of the commands and that it is a correct signature over the tx.
-     *
-     * @throws SignatureException if the signature didn't match the transaction contents.
-     * @throws IllegalArgumentException if the signature key doesn't appear in any command.
-     */
-    @Deprecated("Use WireTransaction.checkSignature() instead.")
-    fun checkSignature(sig: DigitalSignature.WithKey) {
-        require(commands.any { it.signers.any { sig.by in it.keys } }) { "Signature key doesn't match any command" }
-        sig.verify(toWireTransaction().id)
+        return SignedTransaction(wtx, ArrayList(listOf(sig)))
     }
 }

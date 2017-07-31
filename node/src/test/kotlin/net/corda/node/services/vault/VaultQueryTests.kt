@@ -1545,7 +1545,7 @@ class VaultQueryTests : TestDependencyInjectionBase() {
             val commercialPaper =
                     CommercialPaper().generateIssue(issuance, faceValue, TEST_TX_TIME + 30.days, DUMMY_NOTARY).let { builder ->
                         builder.setTimeWindow(TEST_TX_TIME, 30.seconds)
-                        builder.signInitialTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
+                        builder.toSignedTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
                     }
 
             services.recordTransactions(commercialPaper)
@@ -1555,7 +1555,7 @@ class VaultQueryTests : TestDependencyInjectionBase() {
             val commercialPaper2 =
                     CommercialPaper().generateIssue(issuance, faceValue2, TEST_TX_TIME + 30.days, DUMMY_NOTARY).let { builder ->
                         builder.setTimeWindow(TEST_TX_TIME, 30.seconds)
-                        builder.signInitialTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
+                        builder.toSignedTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
                     }
             services.recordTransactions(commercialPaper2)
 
@@ -1581,7 +1581,7 @@ class VaultQueryTests : TestDependencyInjectionBase() {
             val commercialPaper =
                     CommercialPaper().generateIssue(issuance, faceValue, TEST_TX_TIME + 30.days, DUMMY_NOTARY).let { builder ->
                         builder.setTimeWindow(TEST_TX_TIME, 30.seconds)
-                        builder.signInitialTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
+                        builder.toSignedTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
                     }
             services.recordTransactions(commercialPaper)
 
@@ -1590,7 +1590,7 @@ class VaultQueryTests : TestDependencyInjectionBase() {
             val commercialPaper2 =
                     CommercialPaper().generateIssue(issuance, faceValue2, TEST_TX_TIME + 30.days, DUMMY_NOTARY).let { builder ->
                         builder.setTimeWindow(TEST_TX_TIME, 30.seconds)
-                        builder.signInitialTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
+                        builder.toSignedTransaction(MEGA_CORP_KEY).withAdditionalSignature(DUMMY_NOTARY_KEY)
                     }
             services.recordTransactions(commercialPaper2)
 
