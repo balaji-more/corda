@@ -164,18 +164,9 @@ open class TransactionBuilder(
     /**
      * Sign the built transaction and return it, where the initial signature is provided by a third party node.
      */
+    @Deprecated("The signing party should always create the transaction itself, not be given a wire transaction to sign")
     fun toSignedTransaction(sig: DigitalSignature.WithKey): SignedTransaction {
         val wtx = toWireTransaction()
-        return SignedTransaction(wtx, ArrayList(listOf(sig)))
-    }
-
-    /**
-     * Sign the built transaction and return it. This is an internal function for use by unit tests which do not have
-     * full node.
-     */
-    fun toSignedTransaction(keyPair: KeyPair): SignedTransaction {
-        val wtx = toWireTransaction()
-        val sig = keyPair.sign(wtx.id.bytes)
         return SignedTransaction(wtx, ArrayList(listOf(sig)))
     }
 }

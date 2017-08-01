@@ -51,6 +51,8 @@ import static net.corda.core.node.services.vault.QueryCriteriaUtils.MAX_PAGE_SIZ
 import static net.corda.core.utilities.ByteArrays.toHexString;
 import static net.corda.node.utilities.CordaPersistenceKt.configureDatabase;
 import static net.corda.testing.CoreTestUtils.*;
+import static net.corda.testing.TestConstants.getDUMMY_NOTARY;
+import static net.corda.testing.TestConstants.getDUMMY_NOTARY_KEY;
 import static net.corda.testing.node.MockServicesKt.makeTestDataSourceProperties;
 import static net.corda.testing.node.MockServicesKt.makeTestDatabaseProperties;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,7 +72,8 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
         Set<MappedSchema> customSchemas = new HashSet<>(Collections.singletonList(DummyLinearStateSchemaV1.INSTANCE));
         HibernateConfiguration hibernateConfig = new HibernateConfiguration(new NodeSchemaService(customSchemas), makeTestDatabaseProperties());
         database.transaction(
-                    statement -> { services = new MockServices(getMEGA_CORP_KEY()) {
+                    // TODO: We should have separate services for the notary and cash issuer, but functions need to support passing in services for that to work
+                    statement -> { services = new MockServices(getMEGA_CORP_KEY(), getDUMMY_NOTARY_KEY(), getDUMMY_CASH_ISSUER_KEY(), getBOC_KEY()) {
                         @NotNull
                         @Override
                         public VaultService getVaultService() {
@@ -168,10 +171,9 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
                                  new Random(),
                                  new OpaqueBytes("1".getBytes()),
                                 null,
-                                 getDUMMY_CASH_ISSUER(),
-                                 getDUMMY_CASH_ISSUER_KEY() );
+                                 getDUMMY_CASH_ISSUER());
 
-            VaultFiller.consumeCash(services, amount);
+            VaultFiller.consumeCash(services, amount, getDUMMY_NOTARY());
 
             // DOCSTART VaultJavaQueryExample1
             VaultQueryCriteria criteria = new VaultQueryCriteria(Vault.StateStatus.CONSUMED);
@@ -196,8 +198,8 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Vault<DealState> dealStates = VaultFiller.fillWithSomeTestDeals(services, dealIds);
 
             // consume states
-            VaultFiller.consumeDeals(services, (List<? extends StateAndRef<? extends DealState>>) dealStates.getStates());
-            VaultFiller.consumeLinearStates(services, Collections.singletonList(linearState));
+            VaultFiller.consumeDeals(services, (List<? extends StateAndRef<? extends DealState>>) dealStates.getStates(), getDUMMY_NOTARY());
+            VaultFiller.consumeLinearStates(services, Collections.singletonList(linearState), getDUMMY_NOTARY());
 
             // DOCSTART VaultJavaQueryExample2
             Vault.StateStatus status = Vault.StateStatus.CONSUMED;
@@ -235,10 +237,10 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Amount<Currency> dollars10 = new Amount<>(10, Currency.getInstance("USD"));
             Amount<Currency> dollars1 = new Amount<>(1, Currency.getInstance("USD"));
 
-            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars10, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars1, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
+            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars10, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars1, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
 
             try {
                 // DOCSTART VaultJavaQueryExample3
@@ -281,8 +283,7 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
                     new Random(),
                     new OpaqueBytes("1".getBytes()),
                     null,
-                    getDUMMY_CASH_ISSUER(),
-                    getDUMMY_CASH_ISSUER_KEY() );
+                    getDUMMY_CASH_ISSUER());
 
             // DOCSTART VaultJavaQueryExample4
             @SuppressWarnings("unchecked")
@@ -354,10 +355,9 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
                     new Random(),
                     new OpaqueBytes("1".getBytes()),
                     null,
-                    getDUMMY_CASH_ISSUER(),
-                    getDUMMY_CASH_ISSUER_KEY() );
+                    getDUMMY_CASH_ISSUER());
 
-            VaultFiller.consumeCash(services, amount);
+            VaultFiller.consumeCash(services, amount, getDUMMY_NOTARY());
 
             // DOCSTART VaultDeprecatedJavaQueryExample1
             @SuppressWarnings("unchecked")
@@ -381,7 +381,7 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Vault<LinearState> linearStates = VaultFiller.fillWithSomeTestLinearStates(services, 4,null);
             linearStates.getStates().iterator().next().component1().getData().getLinearId();
 
-            VaultFiller.consumeLinearStates(services, (List<? extends StateAndRef<? extends LinearState>>) linearStates.getStates());
+            VaultFiller.consumeLinearStates(services, (List<? extends StateAndRef<? extends LinearState>>) linearStates.getStates(), getDUMMY_NOTARY());
 
             // DOCSTART VaultDeprecatedJavaQueryExample0
             @SuppressWarnings("unchecked")
@@ -413,11 +413,11 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Amount<Currency> pounds = new Amount<>(400, Currency.getInstance("GBP"));
             Amount<Currency> swissfrancs = new Amount<>(500, Currency.getInstance("CHF"));
 
-            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, swissfrancs, TestConstants.getDUMMY_NOTARY(), 5, 5, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
+            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, swissfrancs, TestConstants.getDUMMY_NOTARY(), 5, 5, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
 
             try {
                 // DOCSTART VaultJavaQueryExample21
@@ -458,11 +458,11 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Amount<Currency> pounds = new Amount<>(400, Currency.getInstance("GBP"));
             Amount<Currency> swissfrancs = new Amount<>(500, Currency.getInstance("CHF"));
 
-            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, swissfrancs, TestConstants.getDUMMY_NOTARY(), 5, 5, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
+            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, pounds, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, swissfrancs, TestConstants.getDUMMY_NOTARY(), 5, 5, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
 
             try {
                 // DOCSTART VaultJavaQueryExample22
@@ -528,10 +528,10 @@ public class VaultQueryJavaTests extends TestDependencyInjectionBase {
             Amount<Currency> pounds300 = new Amount<>(300, Currency.getInstance("GBP"));
             Amount<Currency> pounds400 = new Amount<>(400, Currency.getInstance("GBP"));
 
-            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getBOC().ref(new OpaqueBytes("1".getBytes())), getBOC_KEY());
-            VaultFiller.fillWithSomeTestCash(services, pounds300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER(), getDUMMY_CASH_ISSUER_KEY());
-            VaultFiller.fillWithSomeTestCash(services, pounds400, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getBOC().ref(new OpaqueBytes("1".getBytes())), getBOC_KEY());
+            VaultFiller.fillWithSomeTestCash(services, dollars100, TestConstants.getDUMMY_NOTARY(), 1, 1, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, dollars200, TestConstants.getDUMMY_NOTARY(), 2, 2, new Random(0L), new OpaqueBytes("1".getBytes()), null, getBOC().ref(new OpaqueBytes("1".getBytes())));
+            VaultFiller.fillWithSomeTestCash(services, pounds300, TestConstants.getDUMMY_NOTARY(), 3, 3, new Random(0L), new OpaqueBytes("1".getBytes()), null, getDUMMY_CASH_ISSUER());
+            VaultFiller.fillWithSomeTestCash(services, pounds400, TestConstants.getDUMMY_NOTARY(), 4, 4, new Random(0L), new OpaqueBytes("1".getBytes()), null, getBOC().ref(new OpaqueBytes("1".getBytes())));
 
             try {
                 // DOCSTART VaultJavaQueryExample23

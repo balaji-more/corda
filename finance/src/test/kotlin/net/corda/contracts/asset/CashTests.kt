@@ -54,7 +54,8 @@ class CashTests : TestDependencyInjectionBase() {
         val dataSourceProps = makeTestDataSourceProperties()
         database = configureDatabase(dataSourceProps, makeTestDatabaseProperties())
         database.transaction {
-            miniCorpServices = object : MockServices(MINI_CORP_KEY) {
+            // TODO: We should have separate services for MEGA_CORP, rather than issuing directly into MINI_CORP's vault
+            miniCorpServices = object : MockServices(MINI_CORP_KEY, MEGA_CORP_KEY) {
                 override val keyManagementService: MockKeyManagementService = MockKeyManagementService(identityService, MINI_CORP_KEY, MEGA_CORP_KEY, OUR_KEY)
                 override val vaultService: VaultService = makeVaultService(dataSourceProps)
 
@@ -68,13 +69,13 @@ class CashTests : TestDependencyInjectionBase() {
             }
 
             miniCorpServices.fillWithSomeTestCash(howMuch = 100.DOLLARS, atLeastThisManyStates = 1, atMostThisManyStates = 1,
-                    issuedBy = MEGA_CORP.ref(1), issuerKey = MEGA_CORP_KEY, ownedBy = OUR_IDENTITY_1)
+                    ownedBy = OUR_IDENTITY_1, issuedBy = MEGA_CORP.ref(1))
             miniCorpServices.fillWithSomeTestCash(howMuch = 400.DOLLARS, atLeastThisManyStates = 1, atMostThisManyStates = 1,
-                    issuedBy = MEGA_CORP.ref(1), issuerKey = MEGA_CORP_KEY, ownedBy = OUR_IDENTITY_1)
+                    ownedBy = OUR_IDENTITY_1, issuedBy = MEGA_CORP.ref(1))
             miniCorpServices.fillWithSomeTestCash(howMuch = 80.DOLLARS, atLeastThisManyStates = 1, atMostThisManyStates = 1,
-                    issuedBy = MINI_CORP.ref(1), issuerKey = MINI_CORP_KEY, ownedBy = OUR_IDENTITY_1)
+                    ownedBy = OUR_IDENTITY_1, issuedBy = MINI_CORP.ref(1))
             miniCorpServices.fillWithSomeTestCash(howMuch = 80.SWISS_FRANCS, atLeastThisManyStates = 1, atMostThisManyStates = 1,
-                    issuedBy = MINI_CORP.ref(1), issuerKey = MINI_CORP_KEY, ownedBy = OUR_IDENTITY_1)
+                    ownedBy = OUR_IDENTITY_1, issuedBy = MINI_CORP.ref(1))
 
             vaultStatesUnconsumed = miniCorpServices.vaultService.unconsumedStates<Cash.State>().toList()
         }

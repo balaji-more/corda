@@ -2,6 +2,7 @@ package net.corda.node.services.vault
 
 import net.corda.contracts.asset.Cash
 import net.corda.contracts.asset.DUMMY_CASH_ISSUER
+import net.corda.contracts.asset.DUMMY_CASH_ISSUER_KEY
 import net.corda.contracts.getCashBalance
 import net.corda.core.contracts.*
 import net.corda.core.identity.AnonymousParty
@@ -48,7 +49,7 @@ class VaultWithCashTest : TestDependencyInjectionBase() {
         database.transaction {
             val customSchemas = setOf(CommercialPaperSchemaV1, DummyLinearStateSchemaV1)
             val hibernateConfig = HibernateConfiguration(NodeSchemaService(customSchemas), makeTestDatabaseProperties())
-            services = object : MockServices() {
+            services = object : MockServices(DUMMY_NOTARY_KEY, DUMMY_CASH_ISSUER_KEY, MEGA_CORP_KEY) {
                 override val vaultService: VaultService = makeVaultService(dataSourceProps, hibernateConfig)
 
                 override fun recordTransactions(txs: Iterable<SignedTransaction>) {
@@ -74,7 +75,7 @@ class VaultWithCashTest : TestDependencyInjectionBase() {
     fun splits() {
         database.transaction {
             // Fix the PRNG so that we get the same splits every time.
-            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 3, 3, Random(0L))
+            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 3, 3, Random(0L), issuedBy = DUMMY_CASH_ISSUER)
 
             val w = vault.unconsumedStates<Cash.State>().toList()
             assertEquals(3, w.size)
@@ -133,10 +134,8 @@ class VaultWithCashTest : TestDependencyInjectionBase() {
 
         database.transaction {
             // A tx that sends us money.
-            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 10, 10, Random(0L),
-                    issuedBy = MEGA_CORP.ref(1),
-                    issuerKey = MEGA_CORP_KEY,
-                    ownedBy = AnonymousParty(freshKey))
+            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 10, 10, Random(0L), ownedBy = AnonymousParty(freshKey),
+                    issuedBy = MEGA_CORP.ref(1))
             println("Cash balance: ${services.getCashBalance(USD)}")
 
             assertThat(vault.unconsumedStates<Cash.State>()).hasSize(10)
@@ -272,9 +271,9 @@ class VaultWithCashTest : TestDependencyInjectionBase() {
 
         val freshKey = services.keyManagementService.freshKey()
         database.transaction {
-            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 3, 3, Random(0L), ownedBy = AnonymousParty(freshKey))
-            services.fillWithSomeTestCash(100.SWISS_FRANCS, DUMMY_NOTARY, 2, 2, Random(0L))
-            services.fillWithSomeTestCash(100.POUNDS, DUMMY_NOTARY, 1, 1, Random(0L))
+            services.fillWithSomeTestCash(100.DOLLARS, DUMMY_NOTARY, 3, 3, Random(0L), ownedBy = AnonymousParty(freshKey), issuedBy = DUMMY_CASH_ISSUER)
+            services.fillWithSomeTestCash(100.SWISS_FRANCS, DUMMY_NOTARY, 2, 2, Random(0L), issuedBy = DUMMY_CASH_ISSUER)
+            services.fillWithSomeTestCash(100.POUNDS, DUMMY_NOTARY, 1, 1, Random(0L), issuedBy = DUMMY_CASH_ISSUER)
             val cash = vault.unconsumedStates<Cash.State>()
             cash.forEach { println(it.state.data.amount) }
 
