@@ -95,6 +95,7 @@ fun ServiceHub.fillWithSomeTestLinearStates(numberToCreate: Int,
  * @return a vault object that represents the generated states (it will NOT be the full vault from the service hub!).
  */
 fun ServiceHub.fillWithSomeTestCash(howMuch: Amount<Currency>,
+                                    issuerServices: ServiceHub = this,
                                     outputNotary: Party = DUMMY_NOTARY,
                                     atLeastThisManyStates: Int = 3,
                                     atMostThisManyStates: Int = 10,
@@ -113,7 +114,7 @@ fun ServiceHub.fillWithSomeTestCash(howMuch: Amount<Currency>,
         val issuance = TransactionBuilder(null as Party?)
         cash.generateIssue(issuance, Amount(pennies, Issued(issuedBy.copy(reference = ref), howMuch.token)), me, outputNotary)
 
-        return@map signInitialTransaction(issuance, issuedBy.party.owningKey)
+        return@map issuerServices.signInitialTransaction(issuance, issuedBy.party.owningKey)
     }
 
     recordTransactions(transactions)
